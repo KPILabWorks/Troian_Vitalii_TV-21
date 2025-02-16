@@ -1,86 +1,56 @@
-def factorial_recursive(n):
-  if n < 0:
-    raise ValueError("Факторіал не визначений для від'ємних чисел.")
-  if n == 0:
-    return 1
-  else:
-    return n * factorial_recursive(n-1)
-  
-def genVariants(array):
-    """Генерує всі можливі перестановки елементів масиву рекурсивно."""
-    if len(array) == 0:
-        return [[]]  # Повертаємо порожнє
 
-    permutations = []
-    for i in range(len(array)):
-        first_element = array[i] #Перший елемент
-        rest_of_elements = array[:i] + array[i+1:]  # Решта елементів
+def generate_combinations_with_permutations(items):
+    """
+    Генерує всі можливі комбінації елементів заданого списку (з повтореннями)
+    і всі перестановки для кожної комбінації (без itertools),
+    видаляючи дублікати.
 
-        # Рекурсивно викликаємо перестановки для решти елементів
-        sub_permutations = genVariants(rest_of_elements)
+    Args:
+        items: Список елементів.
 
-        # Додаємо поточний елемент на початок кожної перестановки решти елементів
-        for sub_permutation in sub_permutations:
-            print("first_element ", first_element)
-            print("sub_permutation ", sub_permutation)
-            permutations.append([first_element] + sub_permutation)
+    Yields:
+        Кожен раз список, що представляє комбінацію з перестановкою елементів.
+    """
 
-    return permutations
+    def generate_permutations(arr):
+        #Генерує всі перестановки заданого масиву.
+        if len(arr) == 0:
+            return [[]]
+        permutations = []
+        for i in range(len(arr)):
+            first = arr[i]
+            rest = arr[:i] + arr[i+1:]
+            for p in generate_permutations(rest):
+                permutations.append([first] + p)
+        return permutations
 
-example = [1, 2, 3, 4]
-result = genVariants(example)
+    def generate_combinations(arr, k, start_index=0):
+        #Генерує всі комбінації k елементів з заданого масиву (з повтореннями).
+        if k == 0:
+            return [[]]
+        if start_index >= len(arr):
+            return []
+        combinations = []
+        for i in range(start_index, len(arr)):  # Починаємо з start_index
+            first = arr[i]
+            # Дозволяємо повторне використання елемента, починаючи з того ж індексу
+            for c in generate_combinations(arr, k - 1, i):
+                combinations.append([first] + c)
+        return combinations
+
+    seen = set()  # Множина для зберігання унікальних перестановок (у вигляді кортежів)
+
+    for k in range(len(items) + 1):  # Для кожної довжини комбінації
+        for combination in generate_combinations(items, k): #Генеруємо всі комбінації довжини k
+            for permutation in generate_permutations(combination): # Генеруємо всі перестановки цієї комбінації
+                permutation_tuple = tuple(permutation)  # Перетворюємо список на кортеж
+                if permutation_tuple not in seen:  # Перевіряємо, чи немає вже такої перестановки
+                    seen.add(permutation_tuple)  # Додаємо перестановку до множини
+                    yield list(permutation)  # Видаємо перестановку (у вигляді списку)
+
+# Приклад використання
+my_list = [1, 2, 3]
 amount = 1
-for row in result:
-    print(amount,row)
-    amount+=1
-""" """
-
-"""def factorial_recursive(n):
-  if n < 0:
-    raise ValueError("Факторіал не визначений для від'ємних чисел.")
-  if n == 0:
-    return 1
-  else:
-    return n * factorial_recursive(n-1)
-  
-def genVariants(array):
-    num_row = factorial_recursive(len(array))
-    num_cols = len(array)
-    my_answear = [[None] * num_cols for _ in range(num_row)] 
-    work_num = num_row/num_cols
-    val = 0
-    y=0
-
-    for i in range(num_row):
-      if val == len(array):
-        val = 0 
-      
-      my_answear[i][0] = array[val]
-      #print(my_answear[i][0])
-      val+=1
-    
-    for x in range(1,num_cols):
-      print(x)
-      val = 0
-      #for y in range(num_row):
-      iterations = 0
-      while any(row[x] is None for row in my_answear) and iterations < 1000:
-        iterations +=1
-        if y >= 24:
-          y=0
-        if work_num == 0:
-          val +=1
-          work_num = num_row/num_cols
-        temp = array[val]
-        if temp in my_answear[x]:   
-          pass
-        else:
-          my_answear[y][x] = temp  
-          work_num-=1
-          y+=1  
-    return my_answear    
-
-example = [1, 2 , 3, 4]
-result = genVariants(example)
-for row in result:
-    print(row)  """    
+for combination in generate_combinations_with_permutations(my_list):
+    print(amount, combination)
+    amount += 1
