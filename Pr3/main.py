@@ -1,4 +1,3 @@
-#Головне працююче
 import featuretools as ft
 import pandas as pd
 import numpy as np
@@ -59,20 +58,24 @@ es = es.add_relationship("customers", "customer_id", "readings", "customer_id")
 es = es.add_relationship("products", "product_id", "readings", "product_id")
 
 
-# 3. Генеруємо ознаки вручну
+# 3 - Генеруємо ознаки вручну
 # Обчислюємо середнє споживання енергії для кожного клієнта
 mean_consumption = synthetic_data.groupby('customer_id')['energy_consumption'].mean().reset_index()
 mean_consumption.rename(columns={'energy_consumption': 'mean_energy_consumption'}, inplace=True)
+print("\nСереднє споживання енергії для кожного клієнта:")
+print(mean_consumption)
 
 # Обчислюємо максимальне споживання енергії для кожного продукту
 max_consumption = synthetic_data.groupby('product_id')['energy_consumption'].max().reset_index()
 max_consumption.rename(columns={'energy_consumption': 'max_energy_consumption'}, inplace=True)
+print("\nМаксимальне споживання енергії для кожного продукту:")
+print(max_consumption)
 
 # Об'єднуємо згенеровані ознаки з основним DataFrame
 feature_matrix = pd.merge(synthetic_data, mean_consumption, on='customer_id', how='left')
 feature_matrix = pd.merge(feature_matrix, max_consumption, on='product_id', how='left')
 
-# 4. Deep Feature Synthesis (DFS) - Тільки для структурних ознак
+# 4 - Deep Feature Synthesis (DFS) - Тільки для структурних ознак
 target_dataframe_name = "readings"
 
 #Обмежуємось тільки identity примітивами
@@ -82,32 +85,30 @@ feature_matrix_2, features_defs = ft.dfs(entityset=es,
                                            trans_primitives=[], #Тільки identity
                                            )
 
-#Видаляємо reading_id, якщо він існує (може не бути, якщо DFS не створив жодних ознак)
 if 'reading_id' in feature_matrix_2.columns:
     feature_matrix_2 = feature_matrix_2.drop('reading_id', axis=1)
 
 #Обєднуємо результати
 feature_matrix = feature_matrix.join(feature_matrix_2, how='left', lsuffix='_manual', rsuffix='_ft')
 
-#5.Очистка
+#5 - очистка
 feature_matrix = feature_matrix.loc[:,~feature_matrix.columns.duplicated(keep='first')].copy() #Видаляємо дублікати, залишаємо перші
 
-# 6. Підготовка даних для машинного навчання
-#Визначаємо назви стовпців
+# 6- підготовка даних для машинного навчання
 features = ['customer_id_manual', 'product_id_manual', 'mean_energy_consumption', 'max_energy_consumption']
 features = [f for f in features if f in feature_matrix.columns] #Перевіряємо чи є стовпці
-labels = 'energy_consumption_manual' #Використовуємо _manual
+labels = 'energy_consumption_manual'
 
 X = feature_matrix[features]
 y = feature_matrix[labels]
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# 7. Навчання моделі
+# 7 - навчання моделі
 model = RandomForestRegressor(random_state=42)
 model.fit(X_train, y_train)
 
-# 8. Оцінка моделі
+# 8 - оцінка моделі
 predictions = model.predict(X_test)
 rmse = np.sqrt(mean_squared_error(y_test, predictions))
 

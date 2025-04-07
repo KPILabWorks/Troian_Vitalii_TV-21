@@ -4,7 +4,7 @@ from scipy.optimize import minimize
 import time
 
 # --- Параметри ---
-days = 180 # Кількість днів для генерації даних
+days =30 # Кількість днів для генерації даних
 n_hours = 24  # Кількість годин у добі
 total_hours = days * n_hours # Загальна кількість годин у періоді
 
@@ -22,7 +22,7 @@ timestamp = pd.date_range(start="2024-01-01", periods=total_hours, freq="H")
 daily_load_pattern = base_load + np.sin(np.linspace(0, 2 * np.pi, n_hours)) * base_load * 0.5
 # Повторюємо добовий патерн на весь місяць і додаємо шум
 load_forecast = np.tile(daily_load_pattern, days) + np.random.normal(0, load_std, total_hours)
-# Переконуємось, що навантаження не від'ємне (хоча з base_load=100 це малоймовірно)
+# Переконуємось, що навантаження не від'ємне 
 load_forecast = np.maximum(load_forecast, 0)
 
 # Генеруємо добовий патерн цін
@@ -74,8 +74,7 @@ constraint_sum = ({'type': 'eq', 'fun': lambda x: np.sum(x)})
 # 2. Обмеження на переміщення (bounds) для кожної години:
 #    Не можна зменшити навантаження більше, ніж воно є.
 #    Не можна збільшити/зменшити навантаження на величину, більшу за shiftable_load (умовно, для прикладу).
-#    Важливо: оригінальний код мав потенційну помилку в bounds, якщо load_forecast < shiftable_load.
-#    Правильніше обмежити зниження -load_forecast[i], а збільшення - деякою розумною межею (напр., shiftable_load).
+#    Правильніше обмежити зниження -load_forecast[i], а збільшення - деякою розумною межею.
 bounds_day1 = [(-load_forecast_day1[i], shiftable_load) for i in range(n_hours)]
 
 
